@@ -1,0 +1,52 @@
+[
+    {
+        "id": 1,
+        "code": "def maxArea(height):\n    max_area = 0\n    l, r = 0, len(height) - 1\n    while l < r:\n        area = (r - l) * min(height[l], height[r])\n        max_area = max(max_area, area)\n        if height[l] < height[r]:\n            l += 1\n        else:\n            r -= 1\n    return max_area",
+        "context": "Given an integer array height of length n. There are n vertical lines drawn such that the two endpoints of the ith line are (i, 0) and (i, height[i]). Find two lines that together with the x-axis form a container, such that the container contains the most water. Return the maximum amount of water a container can store."
+    },
+    {
+        "id": 2,
+        "code": "def coinChange(coins, amount):\n    dp = [amount + 1] * (amount + 1)\n    dp[0] = 0\n    for a in range(1, amount + 1):\n        for c in coins:\n            if a - c >= 0:\n                dp[a] = min(dp[a], 1 + dp[a - c])\n    return dp[amount] if dp[amount] != amount + 1 else -1",
+        "context": "You are given an integer array coins representing coins of different denominations and an integer amount representing a total amount of money. Return the fewest number of coins that you need to make up that amount. If that amount of money cannot be made up by any combination of the coins, return -1."
+    },
+    {
+        "id": 3,
+        "code": "def productExceptSelf(nums):\n    res = [1] * len(nums)\n    prefix = 1\n    for i in range(len(nums)):\n        res[i] = prefix\n        prefix *= nums[i]\n    postfix = 1\n    for i in range(len(nums) - 1, -1, -1):\n        res[i] *= postfix\n        postfix *= nums[i]\n    return res",
+        "context": "Given an integer array nums, return an array answer such that answer[i] is equal to the product of all the elements of nums except nums[i]. The product of any prefix or suffix of nums is guaranteed to fit in a 32-bit integer. You must write an algorithm that runs in O(n) time and without using the division operation."
+    },
+    {
+        "id": 4,
+        "code": "class ListNode:\n    def __init__(self, x):\n        self.val = x\n        self.next = None\n\ndef hasCycle(head):\n    slow, fast = head, head\n    while fast and fast.next:\n        slow = slow.next\n        fast = fast.next.next\n        if slow == fast:\n            return True\n    return False",
+        "context": "Given head, the head of a linked list, determine if the linked list has a cycle in it. There is a cycle in a linked list if there is some node in the list that can be reached again by continuously following the next pointer. Return true if there is a cycle in the linked list. Otherwise, return false."
+    },
+    {
+        "id": 5,
+        "code": "def maxSubArray(nums):\n    res = nums[0]\n    total = 0\n    for n in nums:\n        total += n\n        res = max(res, total)\n        if total < 0:\n            total = 0\n    return res",
+        "context": "Given an integer array nums, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum."
+    },
+    {
+        "id": 6,
+        "code": "def searchMatrix(matrix, target):\n    if not matrix or not matrix[0]:\n        return False\n    ROWS, COLS = len(matrix), len(matrix[0])\n    l, r = 0, ROWS * COLS - 1\n    while l <= r:\n        mid = (l + r) // 2\n        row, col = divmod(mid, COLS)\n        if matrix[row][col] == target:\n            return True\n        elif matrix[row][col] < target:\n            l = mid + 1\n        else:\n            r = mid - 1\n    return False",
+        "context": "Write an efficient algorithm that searches for a value target in an m x n integer matrix matrix. This matrix has the following properties: Integers in each row are sorted from left to right. The first integer of each row is greater than the last integer of the previous row."
+    },
+    {
+        "id": 7,
+        "code": "def numberToWords(num):\n    if num == 0:\n        return 'Zero'\n    def help(n):\n        if n == 0:\n            return []\n        elif n < 20:\n            return [('One Two Three Four Five Six Seven Eight Nine Ten Eleven Twelve ' + 'Thirteen Fourteen Fifteen Sixteen Seventeen Eighteen Nineteen').split()[n-1]]\n        elif n < 100:\n            return [('Twenty Thirty Forty Fifty Sixty Seventy Eighty Ninety').split()[n//10-2]] + help(n%10)\n        elif n < 1000:\n            return [('One Two Three Four Five Six Seven Eight Nine').split()[n//100-1]] + ['Hundred'] + help(n%100)\n        for p, w in enumerate(('Thousand', 'Million', 'Billion'), 1):\n            if n < 1000**(p+1):\n                return help(n//1000**p) + [w] + help(n%1000**p)\n    return ' '.join(help(num))\n",
+        "context": "Convert a non-negative integer num to its English words representation."
+    },
+    {
+        "id": 8,
+        "code": "def rob(nums):\n    rob1, rob2 = 0, 0\n    for n in nums:\n        temp = max(n + rob1, rob2)\n        rob1 = rob2\n        rob2 = temp\n    return rob2",
+        "context": "You are a professional robber planning to rob houses along a street. Each house has a certain amount of money stashed, the only constraint stopping you from robbing each of them is that adjacent houses have security systems connected and it will automatically contact the police if two adjacent houses were broken into on the same night. Given an integer array nums representing the amount of money of each house, return the maximum amount of money you can rob tonight without alerting the police."
+    },
+    {
+        "id": 9,
+        "code": "def numIslands(grid):\n    if not grid:\n        return 0\n    ROWS, COLS = len(grid), len(grid[0])\n    islands = 0\n    def dfs(r, c):\n        if r < 0 or r >= ROWS or c < 0 or c >= COLS or grid[r][c] != '1':\n            return\n        grid[r][c] = '0'\n        dfs(r + 1, c)\n        dfs(r - 1, c)\n        dfs(r, c + 1)\n        dfs(r, c - 1)\n    for r in range(ROWS):\n        for c in range(COLS):\n            if grid[r][c] == '1':\n                dfs(r, c)\n                islands += 1\n    return islands",
+        "context": "Given an m x n 2D binary grid grid which represents a map of '1's (land) and '0's (water), return the number of islands. An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically. You may assume all four edges of the grid are all surrounded by water."
+    },
+    {
+        "id": 10,
+        "code": "def lengthOfLIS(nums):\n    LIS = [1] * len(nums)\n    for i in range(len(nums) - 1, -1, -1):\n        for j in range(i + 1, len(nums)):\n            if nums[i] < nums[j]:\n                LIS[i] = max(LIS[i], 1 + LIS[j])\n    return max(LIS)",
+        "context": "Given an integer array nums, return the length of the longest strictly increasing subsequence."
+    }
+]

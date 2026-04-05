@@ -1,0 +1,285 @@
+import * as vscode from 'vscode';
+import axios from 'axios';
+import * as cp from 'child_process';
+import * as os from 'os';
+import * as path from 'path';
+
+const BACKEND_URL = 'http://localhost:8000';
+
+let serverProcess: cp.ChildProcess | undefined;
+
+export function activate(context: vscode.ExtensionContext) {
+    console.log('AI SE Tool is now active!');
+
+    // Start Backend Server
+    const backendPath = path.join(__dirname, '..', '..', 'backend', 'server.py');
+    console.log(`Starting backend server from: ${backendPath}`);
+    serverProcess = cp.spawn('python', [backendPath]);
+
+    serverProcess.stdout?.on('data', (data) => {
+        console.log(`Backend stdout: ${data}`);
+    });
+
+    serverProcess.stderr?.on('data', (data) => {
+        console.error(`Backend stderr: ${data}`);
+    });
+
+    // Command: Analyze Code
+    let analyzeDisposable = vscode.commands.registerCommand('ai-se-tool.analyzeCode', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found.');
+            return;
+        }
+
+        const code = editor.document.getText(editor.selection) || editor.document.getText();
+
+        try {
+            vscode.window.showInformationMessage('Analyzing code...');
+            const response = await axios.post(`${BACKEND_URL}/analyze`, { code });
+            const formattedResult = formatResult(response.data.analysis);
+
+            // Generate filename with format analyze_reportHHMMDD.txt
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const fileName = `analyze_report${hours}${minutes}${day}.txt`;
+
+            let fileUri: vscode.Uri;
+
+            if (vscode.workspace.workspaceFolders) {
+                const workspaceFolder = vscode.workspace.workspaceFolders[0].uri;
+                fileUri = vscode.Uri.joinPath(workspaceFolder, fileName);
+            } else {
+                const tempDir = os.tmpdir();
+                fileUri = vscode.Uri.file(path.join(tempDir, fileName));
+            }
+
+            await vscode.workspace.fs.writeFile(fileUri, Buffer.from(formattedResult, 'utf8'));
+
+            // Open in external Notepad
+            cp.exec(`notepad "${fileUri.fsPath}"`, (err) => {
+                if (err) {
+                    vscode.window.showErrorMessage(`Failed to open Notepad: ${err.message}`);
+                }
+            });
+        } catch (error: any) {
+            handleError(error);
+        }
+    });
+
+    // Command: Debug Code
+    let debugDisposable = vscode.commands.registerCommand('ai-se-tool.debugCode', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found.');
+            return;
+        }
+
+        const code = editor.document.getText(editor.selection) || editor.document.getText();
+        const errorInput = await vscode.window.showInputBox({
+            prompt: "Enter the error message or description of the bug"
+        });
+
+        if (!errorInput) return;
+
+        try {
+            vscode.window.showInformationMessage('Debugging code...');
+            const response = await axios.post(`${BACKEND_URL}/debug`, {
+                code,
+                error: errorInput
+            });
+            const formattedResult = formatResult(response.data.debug_info);
+
+            // Generate filename with format debug_reportHHMMDD.txt
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const fileName = `debug_report${hours}${minutes}${day}.txt`;
+
+            let fileUri: vscode.Uri;
+
+            if (vscode.workspace.workspaceFolders) {
+                const workspaceFolder = vscode.workspace.workspaceFolders[0].uri;
+                fileUri = vscode.Uri.joinPath(workspaceFolder, fileName);
+            } else {
+                const tempDir = os.tmpdir();
+                fileUri = vscode.Uri.file(path.join(tempDir, fileName));
+            }
+
+            await vscode.workspace.fs.writeFile(fileUri, Buffer.from(formattedResult, 'utf8'));
+
+            // Open in external Notepad
+            cp.exec(`notepad "${fileUri.fsPath}"`, (err) => {
+                if (err) {
+                    vscode.window.showErrorMessage(`Failed to open Notepad: ${err.message}`);
+                }
+            });
+        } catch (error: any) {
+            handleError(error);
+        }
+    });
+
+    // Command: Generate Tests
+    let testDisposable = vscode.commands.registerCommand('ai-se-tool.generateTests', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found.');
+            return;
+        }
+
+        const code = editor.document.getText(editor.selection) || editor.document.getText();
+
+        try {
+            vscode.window.showInformationMessage('Generating and running tests...');
+            const response = await axios.post(`${BACKEND_URL}/test`, { code });
+            const formattedResult = formatResult(response.data.tests);
+
+            // Generate filename with format test_reportHHMMDD.txt
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const fileName = `test_report${hours}${minutes}${day}.txt`;
+
+            let fileUri: vscode.Uri;
+
+            if (vscode.workspace.workspaceFolders) {
+                const workspaceFolder = vscode.workspace.workspaceFolders[0].uri;
+                fileUri = vscode.Uri.joinPath(workspaceFolder, fileName);
+            } else {
+                const tempDir = os.tmpdir();
+                fileUri = vscode.Uri.file(path.join(tempDir, fileName));
+            }
+
+            await vscode.workspace.fs.writeFile(fileUri, Buffer.from(formattedResult, 'utf8'));
+
+            // Open in external Notepad
+            cp.exec(`notepad "${fileUri.fsPath}"`, (err) => {
+                if (err) {
+                    vscode.window.showErrorMessage(`Failed to open Notepad: ${err.message}`);
+                }
+            });
+        } catch (error: any) {
+            handleError(error);
+        }
+    });
+
+    context.subscriptions.push(analyzeDisposable);
+    context.subscriptions.push(debugDisposable);
+    context.subscriptions.push(testDisposable);
+}
+
+function formatResult(result: any): string {
+    if (typeof result === 'string') {
+        try {
+            // Attempt to parse stringified JSON from backend (sometimes it returns raw JSON strings from cache)
+            result = JSON.parse(result);
+        } catch (e) {
+            return result;
+        }
+    }
+
+    if (typeof result === 'object' && result !== null) {
+        // Debugger Agent Output
+        if (result.root_cause || result.fixed_code || result.breakpoints) {
+            let output = "";
+            if (result.root_cause) {
+                output += `[Root Cause Analysis]\n${result.root_cause}\n\n`;
+            }
+            if (result.fixed_code) {
+                output += `[Fixed Code]\n${result.fixed_code}\n\n`;
+            }
+            if (result.breakpoints) {
+                const bp = Array.isArray(result.breakpoints) ? result.breakpoints.join('\n- ') : result.breakpoints;
+                output += `[Suggested Breakpoints]\n- ${bp}\n\n`;
+            }
+            return output.trim();
+        }
+
+        // Tester Agent Output
+        if (result.test_plan || result.test_results || result.test_code) {
+            let output = "";
+            if (result.test_plan) {
+                output += `[Test Plan]\n${result.test_plan}\n\n`;
+            }
+            if (result.test_results) {
+                const status = result.tests_passed ? "PASSED" : "FAILED";
+                output += `[Test Execution Status: ${status}]\n`;
+                output += `[Test Results]\n${result.test_results}\n\n`;
+            } else if (result.test_code) {
+                output += `[Test Code]\n${result.test_code}\n\n`;
+            }
+            return output.trim();
+        }
+
+        // Code Integrity Agent Output
+        if (result.code_explanation || result.security_issues || result.style_violations || result.performance_suggestions || result.refactoring_suggestions || result.suggested_code) {
+            let output = "[Code Integrity Report]\n\n";
+
+            if (result.code_explanation) {
+                output += `[Code Explanation]\n${result.code_explanation}\n\n`;
+            }
+
+            const formatSection = (title: string, items: any) => {
+                if (Array.isArray(items) && items.length > 0) {
+                    return `[${title}]\n- ${items.join('\n- ')}\n\n`;
+                } else if (typeof items === 'string' && items.trim().length > 0) {
+                    return `[${title}]\n${items}\n\n`;
+                }
+                return "";
+            };
+
+            output += formatSection("Security Issues", result.security_issues);
+            output += formatSection("Style Violations", result.style_violations);
+            output += formatSection("Performance Suggestions", result.performance_suggestions);
+            output += formatSection("Refactoring Suggestions", result.refactoring_suggestions);
+
+            if (result.suggested_code) {
+                output += `[Suggested Code]\n${result.suggested_code}\n\n`;
+            }
+
+            return output.trim();
+        }
+
+        // Fallback for unknown objects
+        return JSON.stringify(result, null, 2);
+    }
+
+    return String(result);
+}
+
+function showResult(title: string, content: string) {
+    const channel = vscode.window.createOutputChannel(title);
+    channel.clear();
+    channel.appendLine(content);
+    channel.show();
+}
+
+function handleError(error: any) {
+    let message = 'An unexpected error occurred.';
+    if (axios.isAxiosError(error)) {
+        if (error.response) {
+            // Server responded with a status code out of the range of 2xx
+            message = `Server Error (${error.response.status}): ${error.response.data.detail || error.message}`;
+        } else if (error.request) {
+            // The request was made but no response was received
+            message = 'No response received from backend. Is it running?';
+        } else {
+            // Something happened in setting up the request
+            message = `Request Error: ${error.message}`;
+        }
+    } else {
+        message = error.message;
+    }
+    vscode.window.showErrorMessage(`AI SE Tool Error: ${message}`);
+}
+
+export function deactivate() {
+    if (serverProcess) {
+        console.log('Killing backend server process...');
+        serverProcess.kill();
+    }
+}
